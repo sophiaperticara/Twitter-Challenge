@@ -16,17 +16,18 @@ import matplotlib.pyplot as plt
 import nltk
 
 df = pd.read_csv(f'{path_file}\{file_export_tweet}', sep=';', skip_blank_lines=True, quotechar='"')
-df_nodup= df.drop_duplicates()
+# ORA ; TESTO CONTENTENTE INFO SU RT , TESTO 
+df.columns =['CREATED_AT', 'TEXT_RT','TEXT' ]
+
+df_nodup= df.drop_duplicates(keep="first").sort_values("TEXT_RT")
+
 len(df)
 len(df_nodup)
-df.head(2)
-# distribuzione per data togliere l'orario 
 
+df.head(3)
+df_nodup.head(13)
 
-# ORA ; TESTO CONTENTENTE INFO SU RT , TESTO 
-df_nodup.columns =['CREATED_AT', 'TEXT_RT','TEXT' ]
-df_nodup.head(10)
-
+# SELEZIONE PERCORSO ITALIANO
 keyword_ita = ["italia", "azzur"]
 
 cols_list = ['TEXT'] 
@@ -40,8 +41,7 @@ print(len(df_italia))
 
 ### TWEET PIU RETWITTATI 
 top10_tweet = df_italia.groupby(['TEXT_RT']).size().reset_index(name='counts')\
-  .sort_values('counts', ascending=False).head(10)
-print(top10_tweet)
+  .sort_values('counts', ascending=False)
 
 
 #### SPEZZETTO LE INFORMAZIONI 
@@ -62,8 +62,9 @@ df_italia['mentioned'] = df_italia["TEXT"].apply(find_mentioned)
 df_italia['hashtags'] = df_italia["TEXT"].apply(find_hashtags)
 
 # solo i non RT
-df_italia_nort = df_italia[~df_italia["TEXT"].str.contains("RT ", case = True)]
+df_italia_nort = df_italia[~df_italia["TEXT_RT"].str.contains("RT ", case = True)]
 print(len(df_italia_nort))
+print(df_italia_nort.head(20))
 
 ##### HASHTAG POPOLARI
 # tiene solo righe dove gli hashtag sono valorizzati
@@ -144,7 +145,7 @@ df_italia['clean_tweet'] = df_italia["TEXT"].astype(str).apply(clean_tweet)
 
 #### STAMPA CSV TUTTO NODUP
 df_italia.to_csv(f'{path_file}\ tweet_ita_no_dup.csv' , sep=";")
-### STAMPA CSV TWEET PIU RT
+### STAMPA CSV TOP10 TWEET PIU RT
 top10_tweet.to_csv(f'{path_file}\ tweet_piu_rt.csv' , sep=";")
 #### STAMPA CSV HASHTAG PIU POPOLARI
 popular_hashtags.to_csv(f'{path_file}\ hashtag_piu_pop.csv' , sep=";")
@@ -156,7 +157,6 @@ df_italia["TEXT"].astype(str).apply(clean_tweet).to_csv(f'{path_file}\ tweets_cl
 ### PLOT HASHTAG CON ANCHE RT
 
 all_hashtags = ' '.join(df_italia["hashtags"].astype(str))
-
 wordcloud = WordCloud(max_font_size=70, max_words=30, 
                       background_color="white", 
                       collocations=False).generate(all_hashtags)
@@ -165,10 +165,7 @@ plt.axis("off")
 plt.show()
 
 ### PLOT MENTIONED
-
 df_mentioned= pd.DataFrame(popular_mentioned, columns = ["mentioned", "counts"])    
-print(df_mentioned)
-# we only keep significant cases
 df_mentioned = df_mentioned[df_mentioned['counts']>100] 
 df_mentioned = df_mentioned.sort_values(by='size', ascending=False)
 df_mentioned.set_index("mentioned",drop=True,inplace=True)
